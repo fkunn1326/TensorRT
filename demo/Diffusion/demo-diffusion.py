@@ -17,17 +17,19 @@
 
 import argparse
 from cuda import cudart
-from models import CLIP, UNet, VAE
 import numpy as np
 import nvtx
 import os
 import onnx
 from polygraphy import cuda
 import time
-import torch
 from transformers import CLIPTokenizer
 import tensorrt as trt
+from polygraphy.backend.trt.loader import LoadPlugins
+import torch
 from utilities import Engine, DPMScheduler, LMSDiscreteScheduler, save_image, TRT_LOGGER
+from models import CLIP, UNet, VAE
+from diffusers import AutoencoderKL
 import gc
 
 def parseArgs():
@@ -140,7 +142,7 @@ class DemoDiffusion:
         self.models = {
             'clip': CLIP(hf_token=hf_token, device=device, verbose=verbose, max_batch_size=max_batch_size),
             self.unet_model_key: UNet(hf_token=hf_token, fp16=denoising_fp16, device=device, verbose=verbose, max_batch_size=max_batch_size),
-            'vae': VAE(hf_token=hf_token, device=device, verbose=verbose, max_batch_size=max_batch_size)
+            # 'vae': VAE(hf_token=hf_token, device=device, verbose=verbose, max_batch_size=max_batch_size)
         }
 
         self.engine = {}
@@ -417,7 +419,14 @@ class DemoDiffusion:
                 nvtx_vae = nvtx.start_range(message='vae', color='red')
             cudart.cudaEventRecord(events['vae-start'], 0)
             sample_inp = cuda.DeviceView(ptr=latents.data_ptr(), shape=latents.shape, dtype=np.float32)
-            images = self.runEngine('vae', {"latent": sample_inp})['images']
+            # images = self.runEngine('vae', {"latent": sample_inp})['images']
+            vae = AutoencoderKL.from_pretrained(
+                "CompVis/stable-diffusion-v1-4", subfolder="vae",
+            ).to("cuda")
+            vae.forward = vae.decode
+            self.vae = vae
+
+            images = self.vae(latents).sample
             cudart.cudaEventRecord(events['vae-stop'], 0)
             if self.nvtx_profile:
                 nvtx.end_range(nvtx_vae)

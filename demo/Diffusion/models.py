@@ -17,14 +17,14 @@
 
 from collections import OrderedDict
 from copy import deepcopy
-from diffusers.models import AutoencoderKL, UNet2DConditionModel
 import numpy as np
 from onnx import shape_inference
 import onnx_graphsurgeon as gs
 from polygraphy.backend.onnx.loader import fold_constants
-import torch
 from transformers import CLIPTextModel
 from cuda import cudart
+from diffusers.models import AutoencoderKL, UNet2DConditionModel
+import torch
 
 class Optimizer():
     def __init__(

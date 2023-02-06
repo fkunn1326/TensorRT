@@ -30,7 +30,7 @@ extern "C"
     //! \param logger Logger object to print plugin registration information
     //! \param libNamespace Namespace used to register all the plugins in this library
     //!
-    TENSORRTAPI bool initLibNvInferPlugins(void* logger, char const* libNamespace);
+    __declspec(dllexport) TENSORRTAPI bool initLibNvInferPlugins(void* logger, char const* libNamespace);
 
 } // extern "C"
 
